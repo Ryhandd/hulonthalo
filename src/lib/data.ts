@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Category, MenuItem, OrderDetail } from "./types";
+import { fotoMenu } from "./menuImages";
 
 export async function fetchMenu(): Promise<{ categories: Category[]; items: MenuItem[] }> {
   const [cats, items] = await Promise.all([
@@ -8,7 +9,10 @@ export async function fetchMenu(): Promise<{ categories: Category[]; items: Menu
   ]);
   if (cats.error) throw cats.error;
   if (items.error) throw items.error;
-  return { categories: cats.data as Category[], items: items.data as MenuItem[] };
+  return {
+    categories: cats.data as Category[],
+    items: (items.data as MenuItem[]).map((m) => ({ ...m, image_url: fotoMenu(m.name, m.image_url) })),
+  };
 }
 
 export async function placeOrder(input: {
