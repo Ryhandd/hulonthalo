@@ -5,11 +5,13 @@ import type { MenuItem } from "@/lib/types";
 import { rupiah } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import CategoryIcon from "./CategoryIcon";
+import { fotoMenu } from "@/lib/menuImages";
 
 export default function ProductCard({ item, slug }: { item: MenuItem; slug?: string }) {
   const { add, dec, qtyOf } = useCart();
   const qty = qtyOf(item.id);
   const soldOut = !item.is_available;
+  const foto = fotoMenu(item.name, item.image_url);
 
   return (
     <article className={`flex gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-terakota/10 ${soldOut ? "opacity-70" : ""}`}>
@@ -23,8 +25,8 @@ export default function ProductCard({ item, slug }: { item: MenuItem; slug?: str
 
       <div className="relative w-28 shrink-0 pb-4">
         <div className="relative aspect-square overflow-hidden rounded-xl bg-gradient-to-br from-rempah/30 to-terakota/15">
-          {item.image_url ? (
-            <Image src={item.image_url} alt={item.name} fill sizes="112px" className="object-cover" />
+          {foto ? (
+            <Image src={foto} alt={item.name} fill sizes="112px" className="object-cover" />
           ) : (
             <div className="grid h-full w-full place-items-center text-terakota/55">
               <CategoryIcon slug={slug} />

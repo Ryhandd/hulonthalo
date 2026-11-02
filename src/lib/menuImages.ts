@@ -29,9 +29,19 @@ const FOTO: Record<string, string> = {
   "Kue Kolombengi": "kue-kolombengi",
 };
 
-const norm = (s: string) => s.trim().toLowerCase().replace(/[’‘]/g, "'");
+// Normalisasi longgar: abaikan huruf besar/kecil, spasi, tanda baca, dan karakter tak terlihat.
+const norm = (s: string) =>
+  s.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "");
+
 const INDEX = new Map(Object.entries(FOTO).map(([nama, file]) => [norm(nama), `/menu/${file}.webp`]));
+const DAFTAR = [...INDEX.entries()];
 
 export function fotoMenu(nama: string, imageUrl: string | null): string | null {
-  return imageUrl || INDEX.get(norm(nama)) || null;
+  if (imageUrl && imageUrl.trim()) return imageUrl;
+  const k = norm(nama);
+  const persis = INDEX.get(k);
+  if (persis) return persis;
+  // Cadangan: nama di database sedikit berbeda (mis. diubah admin), cocokkan berdasarkan awalan.
+  const mirip = DAFTAR.find(([kunci]) => k.length >= 4 && (kunci.startsWith(k) || k.startsWith(kunci)));
+  return mirip ? mirip[1] : null;
 }
