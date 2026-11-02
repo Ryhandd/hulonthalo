@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; touch-action: pan-x pan-y; }
+  body { touch-action: pan-x pan-y; overflow-x: hidden; }
   body { @apply bg-krim font-sans text-arang antialiased; }
   h1, h2, h3 { @apply font-serif; }
   button, a { touch-action: manipulation; }
@@ -16,4 +17,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+}
+
+/* Cegah iOS/Android auto-zoom saat fokus ke kolom input (font minimal 16px) */
+@media (max-width: 1024px) {
+  input, textarea, select { font-size: 16px !important; }
 }
