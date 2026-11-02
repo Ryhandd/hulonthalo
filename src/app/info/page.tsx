@@ -73,11 +73,11 @@ export default function InfoPage() {
         <h2 className="text-lg font-bold">Alamat</h2>
         <p className="mt-1 text-sm text-arang/75">{INFO.address}</p>
         <div className="mt-4 flex gap-2">
-          <a href={maps} target="_blank" rel="noopener noreferrer" className="flex h-11 flex-1 items-center justify-center rounded-full bg-zaitun text-sm font-semibold text-krim shadow-sm">
+          <a href={maps} target="_blank" rel="noopener noreferrer" className="flex h-11 flex-1 items-center justify-center rounded-full bg-zaitun text-sm font-semibold text-krim shadow-sm transition hover:-translate-y-0.5 hover:bg-zaitun-dark hover:shadow-md active:scale-95">
             Buka peta
           </a>
           {wa && (
-            <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="flex h-11 flex-1 items-center justify-center rounded-full bg-white text-sm font-semibold text-zaitun-dark ring-1 ring-zaitun/40">
+            <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="flex h-11 flex-1 items-center justify-center rounded-full bg-white text-sm font-semibold text-zaitun-dark ring-1 ring-zaitun/40 transition hover:-translate-y-0.5 hover:bg-zaitun/10 hover:shadow-md active:scale-95">
               Hubungi via WhatsApp
             </a>
           )}
@@ -92,7 +92,7 @@ export default function InfoPage() {
           <input value={phone} onChange={(e) => { setPhone(e.target.value); setSaved(false); }} placeholder="Nomor WhatsApp" inputMode="tel" autoComplete="tel" className={field} />
           <button
             onClick={() => { saveProfile({ name: name.trim(), phone: phone.trim() }); setSaved(true); }}
-            className="h-12 w-full rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm active:scale-[.98]"
+            className="h-12 w-full rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm transition hover:bg-terakota-dark hover:shadow-md active:scale-[.98]"
           >
             {saved ? "Tersimpan" : "Simpan profil"}
           </button>
@@ -100,7 +100,7 @@ export default function InfoPage() {
       </section>
 
       <p className="pb-2 text-center">
-        <Link href="/admin" className="text-xs text-arang/45 underline">Masuk admin</Link>
+        <Link href="/admin" className="text-xs text-arang/45 underline transition-colors hover:text-terakota">Masuk admin</Link>
       </p>
     </div>
   );

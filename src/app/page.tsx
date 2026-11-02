@@ -24,9 +24,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative mt-4 overflow-hidden rounded-3xl bg-terakota p-5 text-krim shadow-md">
-        <div className="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-rempah/25" aria-hidden="true" />
-        <div className="absolute -bottom-12 right-10 h-28 w-28 rounded-full bg-zaitun/40" aria-hidden="true" />
+      <section className="group relative mt-4 overflow-hidden rounded-3xl bg-terakota p-5 text-krim shadow-md transition-shadow duration-300 hover:shadow-lg">
+        <div className="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-rempah/25 transition-transform duration-700 ease-out group-hover:scale-125" aria-hidden="true" />
+        <div className="absolute -bottom-12 right-10 h-28 w-28 rounded-full bg-zaitun/40 transition-transform duration-700 ease-out group-hover:-translate-x-3 group-hover:scale-125" aria-hidden="true" />
         <div className="relative flex items-center gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold leading-tight sm:text-3xl">
@@ -36,7 +36,7 @@ export default async function HomePage() {
               Pilih menu, kirim pesanan, lalu pantau statusnya.
             </p>
           </div>
-          <div className="hidden shrink-0 rounded-full bg-krim p-3 shadow-sm sm:block">
+          <div className="hidden shrink-0 rounded-full bg-krim p-3 shadow-sm transition duration-300 ease-out hover:rotate-6 hover:scale-110 hover:shadow-md sm:block">
             <Logo size={56} />
           </div>
         </div>

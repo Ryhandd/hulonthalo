@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // Efek hover hanya aktif di perangkat yang punya kursor (tidak "nyangkut" di layar sentuh)
+  future: { hoverOnlyWhenSupported: true },
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
@@ -20,6 +22,11 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        pop: {
+          "0%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.35)" },
+          "100%": { transform: "scale(1)" },
+        },
         barIn: {
           from: { opacity: "0", transform: "translateY(14px)" },
           to: { opacity: "1", transform: "translateY(0)" },
@@ -28,6 +35,7 @@ const config: Config = {
       animation: {
         "page-in": "pageIn .24s ease-out",
         "bar-in": "barIn .2s ease-out",
+        pop: "pop .25s ease-out",
       },
     },
   },

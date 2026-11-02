@@ -18,9 +18,9 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-30 h-14 border-b border-terakota/10 bg-krim/90 backdrop-blur">
       <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2" aria-label="Beranda Rumah Makan Hulonthalo">
-          <Logo size={30} />
-          <span className="font-serif text-lg font-bold text-terakota">Hulonthalo</span>
+        <Link href="/" className="group flex items-center gap-2" aria-label="Beranda Rumah Makan Hulonthalo">
+          <span className="inline-block transition-transform duration-300 ease-out group-hover:-rotate-12 group-hover:scale-110"><Logo size={30} /></span>
+          <span className="font-serif text-lg font-bold text-terakota transition-colors duration-200 group-hover:text-terakota-dark">Hulonthalo</span>
         </Link>
 
         {open !== null && (

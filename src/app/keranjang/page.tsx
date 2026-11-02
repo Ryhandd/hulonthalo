@@ -53,7 +53,7 @@ export default function CartPage() {
         </div>
         <h1 className="mt-5 text-xl font-bold">Keranjang masih kosong</h1>
         <p className="mt-1 text-sm text-arang/60">Pilih menu dulu, lalu kembali ke sini untuk memesan.</p>
-        <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-terakota px-7 text-sm font-semibold text-krim shadow-md active:scale-95">
+        <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-terakota px-7 text-sm font-semibold text-krim shadow-md transition hover:-translate-y-0.5 hover:bg-terakota-dark hover:shadow-lg active:scale-95">
           Lihat menu
         </Link>
       </div>
@@ -73,18 +73,18 @@ export default function CartPage() {
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-arang/55">{rupiah(l.price)} per porsi</span>
               <div className="flex items-center gap-3">
-                <button onClick={() => remove(l.id)} className="text-xs text-terakota underline" aria-label={`Hapus ${l.name}`}>Hapus</button>
+                <button onClick={() => remove(l.id)} className="text-xs text-terakota underline transition-colors hover:text-terakota-dark hover:no-underline" aria-label={`Hapus ${l.name}`}>Hapus</button>
                 <div className="flex items-center gap-0.5 rounded-full bg-zaitun/10 p-1">
-                  <button onClick={() => dec(l.id)} aria-label={`Kurangi ${l.name}`} className="grid h-8 w-8 place-items-center rounded-full bg-white text-lg font-bold text-zaitun shadow-sm">−</button>
+                  <button onClick={() => dec(l.id)} aria-label={`Kurangi ${l.name}`} className="grid h-8 w-8 place-items-center rounded-full bg-white text-lg font-bold text-zaitun shadow-sm transition hover:bg-zaitun/15">−</button>
                   <span className="w-7 text-center text-sm font-bold">{l.qty}</span>
-                  <button onClick={() => add(l)} aria-label={`Tambah ${l.name}`} className="grid h-8 w-8 place-items-center rounded-full bg-zaitun text-lg font-bold text-krim">+</button>
+                  <button onClick={() => add(l)} aria-label={`Tambah ${l.name}`} className="grid h-8 w-8 place-items-center rounded-full bg-zaitun text-lg font-bold text-krim transition hover:scale-110 hover:bg-zaitun-dark">+</button>
                 </div>
               </div>
             </div>
           </li>
         ))}
       </ul>
-      <Link href="/" className="mt-3 inline-block text-sm font-semibold text-zaitun-dark underline">Tambah menu lagi</Link>
+      <Link href="/" className="mt-3 inline-block text-sm font-semibold text-zaitun-dark underline transition-colors hover:text-terakota">Tambah menu lagi</Link>
 
       <h2 className="mb-3 mt-7 text-lg font-bold">Data pemesan</h2>
       <div className="space-y-3">
@@ -113,7 +113,7 @@ export default function CartPage() {
         <button
           onClick={submit}
           disabled={busy}
-          className="mx-auto flex h-14 w-full max-w-xl items-center justify-between rounded-2xl bg-terakota px-5 text-krim shadow-md transition active:scale-[.98] disabled:opacity-60"
+          className="mx-auto flex h-14 w-full max-w-xl items-center justify-between rounded-2xl bg-terakota px-5 text-krim shadow-md transition duration-150 hover:bg-terakota-dark hover:shadow-lg active:scale-[.98] disabled:opacity-60 disabled:hover:bg-terakota"
         >
           <span className="text-base font-semibold">{busy ? "Mengirim pesanan..." : "Kirim pesanan"}</span>
           <span className="font-serif text-base font-bold">{rupiah(total)}</span>

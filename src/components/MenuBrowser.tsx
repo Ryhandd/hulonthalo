@@ -25,8 +25,8 @@ export default function MenuBrowser({ categories, items }: { categories: Categor
 
   return (
     <section aria-label="Daftar menu">
-      <div className="relative mt-5">
-        <svg className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-arang/40" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <div className="group relative mt-5">
+        <svg className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-arang/40 transition-colors group-focus-within:text-terakota group-hover:text-terakota/70" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
         </svg>
         <input
@@ -35,7 +35,7 @@ export default function MenuBrowser({ categories, items }: { categories: Categor
           onChange={(e) => setQ(e.target.value)}
           placeholder="Cari menu, misalnya binte"
           aria-label="Cari menu"
-          className="h-12 w-full rounded-2xl bg-white pl-11 pr-4 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40"
+          className="h-12 w-full rounded-2xl bg-white pl-11 pr-4 text-sm shadow-sm outline-none ring-1 ring-terakota/15 transition hover:shadow-md hover:ring-terakota/35 focus:ring-2 focus:ring-terakota/40"
         />
       </div>
 
@@ -47,10 +47,10 @@ export default function MenuBrowser({ categories, items }: { categories: Categor
               role="tab"
               aria-selected={active === c.id}
               onClick={() => setActive(c.id)}
-              className={`h-10 shrink-0 rounded-full px-5 text-sm font-semibold transition ${
+              className={`h-10 shrink-0 rounded-full px-5 text-sm font-semibold transition duration-150 hover:-translate-y-0.5 active:scale-95 ${
                 active === c.id
-                  ? "bg-terakota text-krim shadow-sm"
-                  : "bg-white text-terakota ring-1 ring-terakota/20"
+                  ? "bg-terakota text-krim shadow-sm hover:bg-terakota-dark"
+                  : "bg-white text-terakota ring-1 ring-terakota/20 hover:bg-terakota/10 hover:ring-terakota/40"
               }`}
             >
               {c.name}

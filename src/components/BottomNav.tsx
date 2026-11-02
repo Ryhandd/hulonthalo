@@ -46,11 +46,11 @@ export default function BottomNav() {
               <Link
                 href={t.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-full flex-col items-center justify-center gap-0.5 transition-colors ${
-                  active ? "text-terakota" : "text-arang/50"
+                className={`group flex h-full flex-col items-center justify-center gap-0.5 transition-colors ${
+                  active ? "text-terakota" : "text-arang/50 hover:text-terakota"
                 }`}
               >
-                <span className={`relative grid h-8 w-14 place-items-center rounded-full transition-colors ${active ? "bg-terakota/10" : ""}`}>
+                <span className={`relative grid h-8 w-14 place-items-center rounded-full transition duration-200 group-hover:-translate-y-0.5 group-hover:scale-110 ${active ? "bg-terakota/10" : "group-hover:bg-terakota/10"}`}>
                   {t.icon}
                   {t.href === "/keranjang" && count > 0 && (
                     <span className="absolute right-2 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-terakota px-1 text-[10px] font-bold text-krim">

@@ -17,7 +17,7 @@ function OrderCard({ o }: { o: OrderDetail }) {
   });
 
   return (
-    <Link href={`/pesanan/${o.id}`} className="block rounded-2xl bg-white p-4 shadow-sm ring-1 ring-terakota/10 transition active:scale-[.99]">
+    <Link href={`/pesanan/${o.id}`} className="block rounded-2xl bg-white p-4 shadow-sm ring-1 ring-terakota/10 transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-terakota/30 active:scale-[.99]">
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-bold">Pesanan #{o.id.slice(-6).toUpperCase()}</p>
@@ -72,7 +72,7 @@ export default function OrdersPage() {
           </div>
           <p className="mt-5 font-serif text-lg font-bold">Belum ada pesanan</p>
           <p className="mt-1 text-sm text-arang/60">Pesanan yang Anda kirim dari perangkat ini akan muncul di sini.</p>
-          <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-terakota px-7 text-sm font-semibold text-krim shadow-md">Pesan sekarang</Link>
+          <Link href="/" className="mt-6 inline-flex h-12 items-center rounded-full bg-terakota px-7 text-sm font-semibold text-krim shadow-md transition hover:-translate-y-0.5 hover:bg-terakota-dark hover:shadow-lg active:scale-95">Pesan sekarang</Link>
         </div>
       ) : (
         <>
