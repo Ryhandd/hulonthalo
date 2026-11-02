@@ -3,7 +3,8 @@ import { Playfair_Display, Montserrat } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/store/cart";
 import Navbar from "@/components/Navbar";
-import CartDrawer from "@/components/CartDrawer";
+import BottomNav from "@/components/BottomNav";
+import CartBar from "@/components/CartBar";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#A65234",
 };
 
@@ -25,8 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <CartProvider>
           <Navbar />
-          <main className="mx-auto max-w-5xl px-4">{children}</main>
-          <CartDrawer />
+          <main className="mx-auto max-w-5xl px-4 pb-28">{children}</main>
+          <CartBar />
+          <BottomNav />
         </CartProvider>
       </body>
     </html>

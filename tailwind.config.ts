@@ -5,7 +5,6 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Warna identitas dari Design Brief
         terakota: { DEFAULT: "#A65234", dark: "#873F25" },
         zaitun: { DEFAULT: "#6E7A42", dark: "#566033" },
         rempah: "#D4A338",
@@ -15,6 +14,20 @@ const config: Config = {
       fontFamily: {
         serif: ["var(--font-playfair)", "Georgia", "serif"],
         sans: ["var(--font-montserrat)", "system-ui", "sans-serif"],
+      },
+      keyframes: {
+        pageIn: {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        barIn: {
+          from: { opacity: "0", transform: "translateY(14px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        "page-in": "pageIn .24s ease-out",
+        "bar-in": "barIn .2s ease-out",
       },
     },
   },

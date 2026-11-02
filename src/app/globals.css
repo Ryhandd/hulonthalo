@@ -3,9 +3,10 @@
 @tailwind utilities;
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
   body { @apply bg-krim font-sans text-arang antialiased; }
   h1, h2, h3 { @apply font-serif; }
+  button, a { touch-action: manipulation; }
 }
 
 @layer utilities {
