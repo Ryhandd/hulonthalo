@@ -6,10 +6,13 @@ import { supabase } from "@/lib/supabase";
 import { rupiah } from "@/lib/format";
 import { STATUS_LABEL, type OrderStatus } from "@/lib/types";
 import { STATUS_BADGE } from "@/lib/status";
+import { ORDER_TYPE_LABEL, PAY_LABEL, type OrderType, type PayMethod, type PayStatus } from "@/lib/checkout";
 
 type AdminOrder = {
   id: string; customer_name: string; phone: string; note: string | null;
   status: OrderStatus; total: number; created_at: string;
+  order_type: OrderType; table_no: string | null;
+  payment_method: PayMethod; payment_status: PayStatus; proof_url: string | null;
   order_items: { name: string; qty: number }[];
 };
 
@@ -50,7 +53,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
   );
 }
 
-function OrderCard({ o, onStatus, compact }: { o: AdminOrder; onStatus?: (id: string, s: OrderStatus) => void; compact?: boolean }) {
+function OrderCard({ o, onStatus, onPaid, compact }: { o: AdminOrder; onStatus?: (id: string, s: OrderStatus) => void; onPaid?: (id: string, v: PayStatus) => void; compact?: boolean }) {
   const next = NEXT[o.status];
   return (
     <article className={`rounded-2xl bg-white p-4 ring-1 ring-terakota/15 ${compact ? "" : "shadow-sm transition duration-200 hover:shadow-md"}`}>
@@ -69,6 +72,20 @@ function OrderCard({ o, onStatus, compact }: { o: AdminOrder; onStatus?: (id: st
       <ul className="mt-3 text-sm text-arang/80">
         {o.order_items.map((i, k) => <li key={k}>{i.qty}× {i.name}</li>)}
       </ul>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span className="rounded-full bg-zaitun/10 px-2.5 py-0.5 font-semibold text-zaitun-dark">
+          {ORDER_TYPE_LABEL[o.order_type]}{o.order_type === "dinein" && o.table_no ? ` · Meja ${o.table_no}` : ""}
+        </span>
+        <span className="text-arang/70">{PAY_LABEL[o.payment_method]} ·{" "}
+          <b className={o.payment_status === "lunas" ? "text-zaitun-dark" : "text-terakota"}>{o.payment_status === "lunas" ? "Lunas" : "Belum bayar"}</b>
+        </span>
+        {o.proof_url && <a href={o.proof_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-zaitun underline">Lihat bukti</a>}
+        {onPaid && o.status !== "dibatalkan" && (
+          <button onClick={() => onPaid(o.id, o.payment_status === "lunas" ? "belum_bayar" : "lunas")} className="font-semibold text-terakota underline">
+            {o.payment_status === "lunas" ? "Batalkan lunas" : "Tandai lunas"}
+          </button>
+        )}
+      </div>
       {o.note && <p className="mt-2 text-xs italic text-arang/60">Catatan: {o.note}</p>}
       <div className="mt-3 flex items-center justify-between">
         <span className="font-bold text-terakota">{rupiah(o.total)}</span>
@@ -89,7 +106,7 @@ function OrderCard({ o, onStatus, compact }: { o: AdminOrder; onStatus?: (id: st
   );
 }
 
-function CustomerCard({ c, onStatus }: { c: Customer; onStatus: (id: string, s: OrderStatus) => void }) {
+function CustomerCard({ c, onStatus, onPaid }: { c: Customer; onStatus: (id: string, s: OrderStatus) => void; onPaid: (id: string, v: PayStatus) => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const shown = useMemo(() => {
@@ -125,7 +142,7 @@ function CustomerCard({ c, onStatus }: { c: Customer; onStatus: (id: string, s: 
             <p className="py-4 text-center text-sm text-arang/60">Pesanan tidak ditemukan.</p>
           ) : (
             <div className="space-y-2">
-              {shown.map((o) => <OrderCard key={o.id} o={o} compact onStatus={onStatus} />)}
+              {shown.map((o) => <OrderCard key={o.id} o={o} compact onStatus={onStatus} onPaid={onPaid} />)}
             </div>
           )}
         </div>
@@ -181,6 +198,11 @@ export default function AdminPage() {
   async function setStatus(id: string, status: OrderStatus) {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) setMsg("Gagal memperbarui. Pastikan akun ini terdaftar di tabel admins.");
+  }
+
+  async function setPaid(id: string, payment_status: PayStatus) {
+    const { error } = await supabase.from("orders").update({ payment_status }).eq("id", id);
+    if (error) setMsg("Gagal memperbarui pembayaran. Pastikan akun ini terdaftar di tabel admins.");
   }
 
   // Pelanggan = dikelompokkan dari nomor HP pada pesanan (aplikasi ini tidak memakai akun pelanggan)
@@ -286,7 +308,7 @@ export default function AdminPage() {
             <p className="py-12 text-center text-sm text-arang/60">{orders.length === 0 ? "Belum ada pesanan." : "Pesanan tidak ditemukan."}</p>
           ) : (
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {shownOrders.map((o) => <OrderCard key={o.id} o={o} onStatus={setStatus} />)}
+              {shownOrders.map((o) => <OrderCard key={o.id} o={o} onStatus={setStatus} onPaid={setPaid} />)}
             </div>
           )}
         </section>
@@ -300,7 +322,7 @@ export default function AdminPage() {
             <p className="py-12 text-center text-sm text-arang/60">{customers.length === 0 ? "Belum ada pelanggan." : "Pelanggan tidak ditemukan."}</p>
           ) : (
             <div className="mt-3 grid items-start gap-3 md:grid-cols-2">
-              {shownCustomers.map((c) => <CustomerCard key={c.key} c={c} onStatus={setStatus} />)}
+              {shownCustomers.map((c) => <CustomerCard key={c.key} c={c} onStatus={setStatus} onPaid={setPaid} />)}
             </div>
           )}
         </section>

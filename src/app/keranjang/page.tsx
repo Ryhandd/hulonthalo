@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
 import { rupiah } from "@/lib/format";
-import { placeOrder } from "@/lib/data";
+import { placeOrder, uploadProof } from "@/lib/data";
 import { addOrderId, loadProfile, saveProfile } from "@/lib/profile";
+import { ACCOUNT_HOLDER, BANKS, type OrderType, type PayMethod } from "@/lib/checkout";
+import { useAuth } from "@/lib/useAuth";
+import QrSim from "@/components/QrSim";
 
 const field =
   "h-12 w-full rounded-2xl bg-white px-4 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40";
@@ -19,6 +22,14 @@ export default function CartPage() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orderType, setOrderType] = useState<OrderType>("dinein");
+  const [tableNo, setTableNo] = useState("");
+  const [pay, setPay] = useState<PayMethod>("qris");
+  const [proof, setProof] = useState<File | null>(null);
+  const [copied, setCopied] = useState(false);
+  const account = useAuth();
+  const isBank = pay.startsWith("bank_");
+  const bank = BANKS.find((b) => b.id === pay);
 
   useEffect(() => {
     const p = loadProfile();
@@ -26,15 +37,37 @@ export default function CartPage() {
     setPhone(p.phone);
   }, []);
 
+  // Pengguna yang login: isi otomatis dari akun
+  useEffect(() => {
+    if (!account) return;
+    if (account.name) setName((v) => v || account.name);
+    if (account.phone) setPhone((v) => v || account.phone);
+  }, [account]);
+
+  async function copyAccount(no: string) {
+    try {
+      await navigator.clipboard.writeText(no);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Tidak bisa menyalin otomatis. Salin nomor rekening secara manual.");
+    }
+  }
+
   async function submit() {
     setError(null);
     if (name.trim().length < 2) return setError("Isi nama Anda.");
     if (phone.replace(/\D/g, "").length < 8) return setError("Isi nomor WhatsApp yang valid.");
+    if (orderType === "dinein" && !tableNo.trim()) return setError("Isi nomor meja untuk Dine-in.");
     setBusy(true);
     try {
-      const id = await placeOrder({ name, phone, note, items: lines.map((l) => ({ id: l.id, qty: l.qty })) });
+      const id = await placeOrder({
+        name, phone, note, orderType, tableNo: tableNo.trim(), paymentMethod: pay,
+        items: lines.map((l) => ({ id: l.id, qty: l.qty })),
+      });
       saveProfile({ name: name.trim(), phone: phone.trim() });
       addOrderId(id);
+      if (isBank && proof) await uploadProof(id, proof).catch(() => {}); // bisa diulang dari halaman pesanan
       clear();
       router.push(`/pesanan/${id}`);
     } catch (e) {
@@ -93,10 +126,86 @@ export default function CartPage() {
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Catatan, misalnya meja 4 atau tanpa sambal"
+          placeholder="Catatan, misalnya tanpa sambal"
           rows={3}
           className="w-full rounded-2xl bg-white px-4 py-3 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40"
         />
+      </div>
+
+      <h2 className="mb-3 mt-7 text-lg font-bold">Jenis pesanan</h2>
+      <div role="radiogroup" aria-label="Jenis pesanan" className="grid grid-cols-2 gap-3">
+        {([["dinein", "🍽️", "Dine-in", "Makan di tempat"], ["takeaway", "🛍️", "Take-away", "Bungkus / ambil sendiri"]] as const).map(([v, icon, label, sub]) => (
+          <button key={v} type="button" role="radio" aria-checked={orderType === v} onClick={() => setOrderType(v)}
+            className={`rounded-2xl p-4 text-left shadow-sm ring-1 transition active:scale-[.98] ${orderType === v ? "bg-terakota text-krim ring-terakota" : "bg-white ring-terakota/15 hover:ring-terakota/40"}`}>
+            <span className="text-2xl" aria-hidden="true">{icon}</span>
+            <span className="mt-1 block text-sm font-bold">{label}</span>
+            <span className={`block text-[11px] ${orderType === v ? "text-krim/85" : "text-arang/55"}`}>{sub}</span>
+          </button>
+        ))}
+      </div>
+      {orderType === "dinein" && (
+        <input value={tableNo} onChange={(e) => setTableNo(e.target.value)} placeholder="Nomor meja, contoh: 4" inputMode="numeric" maxLength={10} aria-label="Nomor meja" className={`${field} mt-3`} />
+      )}
+
+      <h2 className="mb-3 mt-7 text-lg font-bold">Metode pembayaran</h2>
+      <div className="space-y-2" role="radiogroup" aria-label="Metode pembayaran">
+        {([["qris", "📱", "QRIS", "Scan dengan e-wallet atau m-banking"], ["bank_bca", "🏦", "Transfer Bank", "BCA, Mandiri, BNI, BRI"], ["cash", "💵", "Cash / Tunai", "Bayar langsung di kasir"]] as const).map(([v, icon, label, sub]) => {
+          const on = v === "bank_bca" ? isBank : pay === v;
+          return (
+            <button key={v} type="button" role="radio" aria-checked={on} onClick={() => setPay(v === "bank_bca" && isBank ? pay : v)}
+              className={`flex w-full items-center gap-3 rounded-2xl p-3.5 text-left shadow-sm ring-1 transition active:scale-[.99] ${on ? "bg-white ring-2 ring-terakota" : "bg-white ring-terakota/15 hover:ring-terakota/40"}`}>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-terakota/10 text-xl" aria-hidden="true">{icon}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">{label}</span>
+                <span className="block text-xs text-arang/55">{sub}</span>
+              </span>
+              <span className={`grid h-5 w-5 place-items-center rounded-full ring-2 ${on ? "ring-terakota" : "ring-arang/20"}`} aria-hidden="true">
+                {on && <span className="h-2.5 w-2.5 rounded-full bg-terakota" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-terakota/10">
+        {pay === "qris" && (
+          <div className="text-center">
+            <p className="text-sm font-semibold">Scan untuk membayar {rupiah(total)}</p>
+            <div className="mt-3 inline-block rounded-2xl p-2 ring-1 ring-terakota/15"><QrSim seed={`hulonthalo-${total}-${count}`} /></div>
+            <p className="mt-2 text-xs text-arang/55">Simulasi QRIS. Pesanan dikonfirmasi kasir setelah pembayaran diterima.</p>
+          </div>
+        )}
+        {isBank && bank && (
+          <div>
+            <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Pilih bank">
+              {BANKS.map((b) => (
+                <button key={b.id} type="button" role="radio" aria-checked={pay === b.id} onClick={() => setPay(b.id)}
+                  className={`h-10 rounded-full text-xs font-bold transition ${pay === b.id ? "bg-zaitun text-krim" : "bg-zaitun/10 text-zaitun-dark hover:bg-zaitun/20"}`}>
+                  {b.name}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-krim p-3">
+              <div className="min-w-0">
+                <p className="text-[11px] text-arang/55">Rekening {bank.name} a.n. {ACCOUNT_HOLDER}</p>
+                <p className="font-serif text-xl font-bold tracking-wide">{bank.account}</p>
+              </div>
+              <button type="button" onClick={() => copyAccount(bank.account)} className="h-9 shrink-0 rounded-full bg-terakota px-4 text-xs font-semibold text-krim transition hover:bg-terakota-dark active:scale-95">
+                {copied ? "Tersalin" : "Salin"}
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-arang/65">Transfer tepat <b>{rupiah(total)}</b>, lalu unggah bukti transfer (opsional, bisa menyusul dari halaman pesanan).</p>
+            <label className="mt-2 flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-dashed border-terakota/40 px-4 text-sm font-semibold text-terakota transition hover:bg-terakota/5">
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => setProof(e.target.files?.[0] ?? null)} />
+              <span className="truncate">{proof ? `✓ ${proof.name}` : "Unggah bukti transfer"}</span>
+            </label>
+          </div>
+        )}
+        {pay === "cash" && (
+          <p className="text-sm text-arang/75">
+            {orderType === "dinein" ? "Bayar tunai di kasir setelah selesai makan atau saat pesanan diantar ke meja." : "Bayar tunai di kasir saat mengambil pesanan."}
+          </p>
+        )}
       </div>
 
       <div className="mt-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-terakota/10">

@@ -23,11 +23,18 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   dibatalkan: "Dibatalkan",
 };
 
+import type { OrderType, PayMethod, PayStatus } from "./checkout";
+
 export type OrderDetail = {
   id: string;
   status: OrderStatus;
   total: number;
   customer_name: string;
   created_at: string;
+  order_type: OrderType;
+  table_no: string | null;
+  payment_method: PayMethod;
+  payment_status: PayStatus;
+  has_proof: boolean;
   items: { name: string; price: number; qty: number }[];
 };

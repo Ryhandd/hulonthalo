@@ -4,23 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { INFO, isOpenNow } from "@/lib/info";
-import { loadProfile, saveProfile } from "@/lib/profile";
+import AuthModal from "@/components/AuthModal";
+import { signOut, useAuth } from "@/lib/useAuth";
 
-const field =
-  "h-12 w-full rounded-2xl bg-krim px-4 text-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40";
 const card = "rounded-2xl bg-white p-5 shadow-sm ring-1 ring-terakota/10";
 
 export default function InfoPage() {
   const [open, setOpen] = useState<boolean | null>(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [saved, setSaved] = useState(false);
+  const account = useAuth();
+  const [auth, setAuth] = useState<"masuk" | "daftar" | null>(null);
 
   useEffect(() => {
     setOpen(isOpenNow());
-    const p = loadProfile();
-    setName(p.name);
-    setPhone(p.phone);
   }, []);
 
   const wa = process.env.NEXT_PUBLIC_WA_NUMBER;
@@ -43,6 +38,41 @@ export default function InfoPage() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className={card} aria-live="polite">
+        <h2 className="text-lg font-bold">Profil Anda</h2>
+        {account === undefined ? (
+          <p className="mt-2 text-sm text-arang/55">Memuat...</p>
+        ) : account ? (
+          <>
+            <div className="mt-3 flex items-center gap-3">
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-terakota/10 font-serif text-2xl font-bold text-terakota">
+                {(account.name || account.email).trim().charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{account.name || "Pelanggan"}</p>
+                <p className="truncate text-xs text-arang/60">Sudah masuk</p>
+              </div>
+            </div>
+            <dl className="mt-4 divide-y divide-terakota/10 text-sm">
+              <div className="flex justify-between gap-3 py-2.5"><dt className="text-arang/60">Nama</dt><dd className="truncate font-semibold">{account.name || "-"}</dd></div>
+              <div className="flex justify-between gap-3 py-2.5"><dt className="text-arang/60">Email</dt><dd className="truncate font-semibold">{account.email}</dd></div>
+              <div className="flex justify-between gap-3 py-2.5"><dt className="text-arang/60">No. HP</dt><dd className="font-semibold">{account.phone || "-"}</dd></div>
+            </dl>
+            <button onClick={() => signOut()} className="mt-4 h-12 w-full rounded-full bg-white text-sm font-semibold text-terakota ring-1 ring-terakota/40 transition hover:bg-terakota/10 active:scale-[.98]">
+              Log Out
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-arang/65">Masuk atau daftar agar nama dan nomor HP terisi otomatis saat memesan.</p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setAuth("masuk")} className="h-12 flex-1 rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm transition hover:bg-terakota-dark active:scale-[.98]">Sign In</button>
+              <button onClick={() => setAuth("daftar")} className="h-12 flex-1 rounded-full bg-white text-sm font-semibold text-terakota ring-1 ring-terakota/40 transition hover:bg-terakota/10 active:scale-[.98]">Sign Up</button>
+            </div>
+          </>
+        )}
       </section>
 
       <section className={card}>
@@ -84,20 +114,7 @@ export default function InfoPage() {
         </div>
       </section>
 
-      <section className={card}>
-        <h2 className="text-lg font-bold">Profil Anda</h2>
-        <p className="mt-1 text-xs text-arang/55">Tersimpan di perangkat ini dan terisi otomatis saat memesan.</p>
-        <div className="mt-3 space-y-3">
-          <input value={name} onChange={(e) => { setName(e.target.value); setSaved(false); }} placeholder="Nama" autoComplete="name" className={field} />
-          <input value={phone} onChange={(e) => { setPhone(e.target.value); setSaved(false); }} placeholder="Nomor WhatsApp" inputMode="tel" autoComplete="tel" className={field} />
-          <button
-            onClick={() => { saveProfile({ name: name.trim(), phone: phone.trim() }); setSaved(true); }}
-            className="h-12 w-full rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm transition hover:bg-terakota-dark hover:shadow-md active:scale-[.98]"
-          >
-            {saved ? "Tersimpan" : "Simpan profil"}
-          </button>
-        </div>
-      </section>
+      {auth && <AuthModal initial={auth} onClose={() => setAuth(null)} />}
 
       <p className="pb-2 text-center">
         <Link href="/admin" className="text-xs text-arang/45 underline transition-colors hover:text-terakota">Masuk admin</Link>

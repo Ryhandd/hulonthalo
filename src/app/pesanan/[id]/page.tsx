@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getOrder } from "@/lib/data";
+import { getOrder, uploadProof } from "@/lib/data";
+import { ORDER_TYPE_LABEL, PAY_LABEL } from "@/lib/checkout";
 import { rupiah } from "@/lib/format";
 import { addOrderId } from "@/lib/profile";
 import { STATUS_BADGE } from "@/lib/status";
@@ -17,6 +18,8 @@ const SHORT: Record<OrderStatus, string> = {
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<OrderDetail | null | undefined>(undefined);
+  const [upBusy, setUpBusy] = useState(false);
+  const [upMsg, setUpMsg] = useState<string | null>(null);
 
   useEffect(() => {
     addOrderId(id); // pastikan pesanan tersimpan di riwayat perangkat ini
@@ -61,6 +64,46 @@ export default function OrderPage() {
               </li>
             ))}
           </ol>
+        )}
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-white p-5 text-sm shadow-sm ring-1 ring-terakota/10">
+        <div className="flex justify-between gap-3 py-1">
+          <span className="text-arang/60">Layanan</span>
+          <span className="font-semibold">{ORDER_TYPE_LABEL[order.order_type]}{order.order_type === "dinein" && order.table_no ? ` · Meja ${order.table_no}` : ""}</span>
+        </div>
+        <div className="flex justify-between gap-3 py-1">
+          <span className="text-arang/60">Pembayaran</span>
+          <span className="font-semibold">{PAY_LABEL[order.payment_method]}</span>
+        </div>
+        <div className="flex justify-between gap-3 py-1">
+          <span className="text-arang/60">Status bayar</span>
+          <span className={`font-semibold ${order.payment_status === "lunas" ? "text-zaitun-dark" : "text-terakota"}`}>
+            {order.payment_status === "lunas" ? "Lunas" : order.payment_method === "cash" ? "Bayar di kasir" : "Menunggu pembayaran"}
+          </span>
+        </div>
+        {order.payment_method.startsWith("bank_") && order.payment_status === "belum_bayar" && (
+          <div className="mt-3 border-t border-terakota/10 pt-3">
+            {order.has_proof ? (
+              <p className="text-xs text-zaitun-dark">Bukti transfer sudah diunggah. Menunggu konfirmasi kasir.</p>
+            ) : (
+              <label className="flex h-11 cursor-pointer items-center justify-center rounded-full border border-dashed border-terakota/40 text-sm font-semibold text-terakota hover:bg-terakota/5">
+                <input
+                  type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={upBusy}
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setUpBusy(true); setUpMsg(null);
+                    try { await uploadProof(order.id, f); setUpMsg("Bukti terunggah."); }
+                    catch (err) { setUpMsg(err instanceof Error ? err.message : "Gagal mengunggah."); }
+                    setUpBusy(false);
+                  }}
+                />
+                {upBusy ? "Mengunggah..." : "Unggah bukti transfer"}
+              </label>
+            )}
+            {upMsg && <p role="status" className="mt-2 text-xs text-arang/70">{upMsg}</p>}
+          </div>
         )}
       </div>
 

@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Category, MenuItem, OrderDetail } from "./types";
+import type { OrderType, PayMethod } from "./checkout";
 import { fotoMenu } from "./menuImages";
 
 export async function fetchMenu(): Promise<{ categories: Category[]; items: MenuItem[] }> {
@@ -20,12 +21,18 @@ export async function placeOrder(input: {
   phone: string;
   note: string;
   items: { id: string; qty: number }[];
+  orderType: OrderType;
+  tableNo: string;
+  paymentMethod: PayMethod;
 }): Promise<string> {
   const { data, error } = await supabase.rpc("place_order", {
     p_customer_name: input.name,
     p_phone: input.phone,
     p_note: input.note,
     p_items: input.items,
+    p_order_type: input.orderType,
+    p_table_no: input.orderType === "dinein" ? input.tableNo : null,
+    p_payment_method: input.paymentMethod,
   });
   if (error) throw new Error(error.message);
   return data as string;
@@ -35,4 +42,17 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
   const { data, error } = await supabase.rpc("get_order", { p_id: id });
   if (error) throw new Error(error.message);
   return (data as OrderDetail) ?? null;
+}
+
+// Unggah bukti transfer (gambar maks. 5 MB) lalu kaitkan ke pesanan.
+export async function uploadProof(orderId: string, file: File): Promise<void> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("Bukti harus berupa gambar JPG, PNG, atau WebP.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Ukuran gambar maksimal 5 MB.");
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${orderId}/${Date.now()}.${ext}`;
+  const up = await supabase.storage.from("payment-proofs").upload(path, file, { contentType: file.type });
+  if (up.error) throw new Error("Gagal mengunggah bukti. Coba lagi.");
+  const url = supabase.storage.from("payment-proofs").getPublicUrl(path).data.publicUrl;
+  const { error } = await supabase.rpc("attach_payment_proof", { p_id: orderId, p_url: url });
+  if (error) throw new Error(error.message);
 }
