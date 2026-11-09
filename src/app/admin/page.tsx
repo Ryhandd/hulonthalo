@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { adminSupabase as supabase } from "@/lib/adminClient";
 import { rupiah } from "@/lib/format";
 import { STATUS_LABEL, type OrderStatus } from "@/lib/types";
 import { STATUS_BADGE } from "@/lib/status";
@@ -161,12 +161,22 @@ export default function AdminPage() {
   const [qOrder, setQOrder] = useState("");
   const [qCust, setQCust] = useState("");
   const [filter, setFilter] = useState<"semua" | OrderStatus>("semua");
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null = sedang diperiksa
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Wajib terdaftar di tabel admins (dicek di database lewat fungsi is_admin)
+  useEffect(() => {
+    if (!session) { setIsAdmin(null); return; }
+    let alive = true;
+    supabase.rpc("is_admin").then(({ data, error }) => alive && setIsAdmin(!error && data === true));
+    return () => { alive = false; };
+  }, [session]);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -180,19 +190,31 @@ export default function AdminPage() {
 
   // Realtime: muat ulang setiap ada perubahan pada tabel orders
   useEffect(() => {
-    if (!session) return;
+    if (!session || isAdmin !== true) return;
     load();
     const ch = supabase
       .channel("orders-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [session, load]);
+  }, [session, isAdmin, load]);
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setMsg(error ? "Email atau kata sandi salah." : null);
+    setMsg(null);
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+    if (error) {
+      setBusy(false);
+      return setMsg(/invalid login/i.test(error.message) ? "Email atau kata sandi salah." : error.message);
+    }
+    const { data: ok } = await supabase.rpc("is_admin");
+    if (ok !== true) {
+      await supabase.auth.signOut();
+      setBusy(false);
+      return setMsg("Akun ini bukan admin. Akses panel admin ditolak. Pelanggan silakan masuk lewat halaman Profil.");
+    }
+    setBusy(false);
   }
 
   async function setStatus(id: string, status: OrderStatus) {
@@ -245,6 +267,17 @@ export default function AdminPage() {
 
   const omzet = useMemo(() => orders.filter((o) => o.status === "selesai").reduce((a, o) => a + o.total, 0), [orders]);
 
+  if (session && isAdmin === null) return <p className="py-20 text-center text-sm text-arang/60">Memeriksa akses...</p>;
+
+  if (session && isAdmin === false)
+    return (
+      <div className="mx-auto max-w-sm py-16 text-center">
+        <h1 className="text-2xl font-bold text-terakota">Akses ditolak</h1>
+        <p className="mt-2 text-sm text-arang/65">Akun ini tidak terdaftar sebagai admin.</p>
+        <button onClick={() => supabase.auth.signOut()} className="mt-6 h-12 rounded-full bg-terakota px-8 text-sm font-semibold text-krim transition hover:bg-terakota-dark">Keluar</button>
+      </div>
+    );
+
   if (!session)
     return (
       <form onSubmit={login} className="mx-auto max-w-sm space-y-3 py-12">
@@ -252,7 +285,7 @@ export default function AdminPage() {
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required className="h-11 w-full rounded-xl border border-terakota/25 bg-white px-4 text-sm" />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Kata sandi" required className="h-11 w-full rounded-xl border border-terakota/25 bg-white px-4 text-sm" />
         {msg && <p role="alert" className="text-sm text-terakota">{msg}</p>}
-        <button className="h-12 w-full rounded-full bg-terakota font-semibold text-krim transition hover:bg-terakota-dark">Masuk</button>
+        <button disabled={busy} className="h-12 w-full rounded-full bg-terakota font-semibold text-krim transition hover:bg-terakota-dark disabled:opacity-60">{busy ? "Memeriksa..." : "Masuk"}</button>
       </form>
     );
 
