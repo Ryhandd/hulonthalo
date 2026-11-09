@@ -56,27 +56,38 @@ export async function signIn(email: string, password: string) {
   if (a) saveProfile({ name: a.name, phone: a.phone }); // isi otomatis saat memesan
 }
 
-// true = langsung masuk (sesi aktif); false = Supabase meminta konfirmasi email dulu.
+// true = langsung masuk (sesi aktif); false = perlu verifikasi email dulu.
+// Pendaftaran lewat /api/auth/signup (server): auto-confirm bila RESEND_API_KEY kosong, atau email via Resend.
 export async function signUp(v: { name: string; email: string; phone: string; password: string }) {
   const email = v.email.trim().toLowerCase();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password: v.password,
-    options: { data: { name: v.name.trim(), phone: v.phone.trim() } },
-  });
-  if (error) throw explain(error);
-  // Email sudah terdaftar: Supabase mengembalikan user tanpa identities (tanpa error)
-  if (data.user && data.user.identities?.length === 0) throw new AuthError("Email sudah terdaftar. Silakan masuk.");
+  let res: Response;
+  try {
+    res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: v.name, phone: v.phone, email, password: v.password }),
+    });
+  } catch {
+    throw new AuthError("Tidak bisa terhubung ke server. Periksa koneksi internet.");
+  }
+  const body = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
+  if (!res.ok) throw new AuthError(body.error ?? "Pendaftaran gagal. Coba lagi.");
   saveProfile({ name: v.name.trim(), phone: v.phone.trim() });
-  if (data.session) return true; // auto-confirm aktif: sesi langsung tercatat, onAuthStateChange memperbarui UI
-  // Tidak ada sesi: coba masuk langsung (berhasil bila konfirmasi email ternyata nonaktif)
-  const r = await supabase.auth.signInWithPassword({ email, password: v.password });
-  return !r.error;
+  if (body.status === "confirmed") {
+    await signIn(email, v.password); // sesi langsung tercatat
+    return true;
+  }
+  return false; // verify_email
 }
 
 export async function resendConfirmation(email: string) {
-  const { error } = await supabase.auth.resend({ type: "signup", email: email.trim().toLowerCase() });
-  if (error) throw explain(error);
+  const res = await fetch("/api/auth/resend", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  }).catch(() => null);
+  if (!res) throw new AuthError("Tidak bisa terhubung ke server.");
+  if (!res.ok) throw new AuthError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Gagal mengirim ulang email.");
 }
 
 export async function signOut() {
