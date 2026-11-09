@@ -6,6 +6,7 @@ import { adminSupabase as supabase } from "@/lib/adminClient";
 import { rupiah } from "@/lib/format";
 import { STATUS_LABEL, type OrderStatus } from "@/lib/types";
 import { STATUS_BADGE } from "@/lib/status";
+import Receipt from "@/components/Receipt";
 import { ORDER_TYPE_LABEL, PAY_LABEL, type OrderType, type PayMethod, type PayStatus } from "@/lib/checkout";
 
 type AdminOrder = {
@@ -13,7 +14,7 @@ type AdminOrder = {
   status: OrderStatus; total: number; created_at: string;
   order_type: OrderType; table_no: string | null;
   payment_method: PayMethod; payment_status: PayStatus; proof_url: string | null;
-  order_items: { name: string; qty: number }[];
+  order_items: { name: string; qty: number; price: number }[];
 };
 
 type Customer = {
@@ -36,8 +37,11 @@ const waLink = (p: string) => `https://wa.me/${normPhone(p)}`;
 const fmtDate = (iso: string) =>
   new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Makassar", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 const kode = (id: string) => id.slice(0, 8).toUpperCase();
+// Tanggal (YYYY-MM-DD) menurut WITA, untuk filter rentang tanggal & omzet harian
+const dayKey = (iso: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Makassar" }).format(new Date(iso));
+const payGroup = (m: PayMethod) => (m?.startsWith("bank_") ? "bank" : m ?? "cash");
 const orderText = (o: AdminOrder) =>
-  [o.customer_name, o.phone, normPhone(o.phone), o.note ?? "", kode(o.id), STATUS_LABEL[o.status], ...o.order_items.map((i) => i.name)].join(" ").toLowerCase();
+  [o.customer_name, o.phone, normPhone(o.phone), o.note ?? "", kode(o.id), o.id.slice(-6).toUpperCase(), STATUS_LABEL[o.status], PAY_LABEL[o.payment_method] ?? "", ...o.order_items.map((i) => i.name)].join(" ").toLowerCase();
 
 function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
@@ -55,6 +59,10 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
 
 function OrderCard({ o, onStatus, onPaid, compact }: { o: AdminOrder; onStatus?: (id: string, s: OrderStatus) => void; onPaid?: (id: string, v: PayStatus) => void; compact?: boolean }) {
   const next = NEXT[o.status];
+  const [receipt, setReceipt] = useState(false);
+  const type = o.order_type ?? "takeaway";
+  const method = o.payment_method ?? "cash";
+  const paid = o.payment_status ?? "belum_bayar";
   return (
     <article className={`rounded-2xl bg-white p-4 ring-1 ring-terakota/15 ${compact ? "" : "shadow-sm transition duration-200 hover:shadow-md"}`}>
       <div className="flex items-start justify-between gap-2">
@@ -74,34 +82,48 @@ function OrderCard({ o, onStatus, onPaid, compact }: { o: AdminOrder; onStatus?:
       </ul>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <span className="rounded-full bg-zaitun/10 px-2.5 py-0.5 font-semibold text-zaitun-dark">
-          {ORDER_TYPE_LABEL[o.order_type]}{o.order_type === "dinein" && o.table_no ? ` · Meja ${o.table_no}` : ""}
+          {ORDER_TYPE_LABEL[type]}{type === "dinein" && o.table_no ? ` · Meja ${o.table_no}` : ""}
         </span>
-        <span className="text-arang/70">{PAY_LABEL[o.payment_method]} ·{" "}
-          <b className={o.payment_status === "lunas" ? "text-zaitun-dark" : "text-terakota"}>{o.payment_status === "lunas" ? "Lunas" : "Belum bayar"}</b>
+        <span className="text-arang/70">{PAY_LABEL[method]} ·{" "}
+          <b className={paid === "lunas" ? "text-zaitun-dark" : "text-terakota"}>{paid === "lunas" ? "Lunas" : "Belum bayar"}</b>
         </span>
         {o.proof_url && <a href={o.proof_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-zaitun underline">Lihat bukti</a>}
         {onPaid && o.status !== "dibatalkan" && (
-          <button onClick={() => onPaid(o.id, o.payment_status === "lunas" ? "belum_bayar" : "lunas")} className="font-semibold text-terakota underline">
-            {o.payment_status === "lunas" ? "Batalkan lunas" : "Tandai lunas"}
+          <button onClick={() => onPaid(o.id, paid === "lunas" ? "belum_bayar" : "lunas")} className="font-semibold text-terakota underline">
+            {paid === "lunas" ? "Batalkan lunas" : "Tandai lunas"}
           </button>
         )}
       </div>
       {o.note && <p className="mt-2 text-xs italic text-arang/60">Catatan: {o.note}</p>}
-      <div className="mt-3 flex items-center justify-between">
+
+      {onStatus && (
+        <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Ubah status pesanan">
+          {STATUSES.map((st) => (
+            <button
+              key={st} disabled={st === o.status}
+              onClick={() => { if (st !== "dibatalkan" || window.confirm("Batalkan pesanan ini?")) onStatus(o.id, st); }}
+              className={`h-8 rounded-full px-3 text-[11px] font-semibold transition ${
+                st === o.status ? `${STATUS_BADGE[st]} ring-1 ring-current` : "bg-white text-arang/70 ring-1 ring-terakota/20 hover:bg-terakota/10"
+              }`}
+            >
+              {STATUS_LABEL[st]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
         <span className="font-bold text-terakota">{rupiah(o.total)}</span>
-        {onStatus && (
-          <div className="flex gap-2">
-            {o.status !== "dibatalkan" && o.status !== "selesai" && (
-              <button onClick={() => onStatus(o.id, "dibatalkan")} className="h-9 rounded-full border border-terakota/30 px-4 text-xs text-terakota transition hover:bg-terakota/10">Batalkan</button>
-            )}
-            {next && (
-              <button onClick={() => onStatus(o.id, next)} className="h-9 rounded-full bg-terakota px-4 text-xs font-semibold text-krim transition hover:bg-terakota-dark">
-                {STATUS_LABEL[next]}
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex gap-2">
+          <button onClick={() => setReceipt(true)} className="h-9 rounded-full border border-terakota/30 px-4 text-xs font-semibold text-terakota transition hover:bg-terakota/10">Cetak Struk</button>
+          {onStatus && next && (
+            <button onClick={() => onStatus(o.id, next)} className="h-9 rounded-full bg-terakota px-4 text-xs font-semibold text-krim transition hover:bg-terakota-dark">
+              {STATUS_LABEL[next]}
+            </button>
+          )}
+        </div>
       </div>
+      {receipt && <Receipt o={o} onClose={() => setReceipt(false)} />}
     </article>
   );
 }
@@ -161,6 +183,9 @@ export default function AdminPage() {
   const [qOrder, setQOrder] = useState("");
   const [qCust, setQCust] = useState("");
   const [filter, setFilter] = useState<"semua" | OrderStatus>("semua");
+  const [payF, setPayF] = useState<"semua" | "qris" | "bank" | "cash">("semua");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null = sedang diperiksa
   const [busy, setBusy] = useState(false);
 
@@ -179,13 +204,19 @@ export default function AdminPage() {
   }, [session]);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*, order_items(name, qty)")
-      .order("created_at", { ascending: false })
-      .limit(1000);
-    if (error) return setMsg(error.message);
-    setOrders((data ?? []) as AdminOrder[]);
+    // Ambil semua pesanan bertahap (1000 per halaman) agar omzet tidak terpotong batas baris
+    const all: AdminOrder[] = [];
+    for (let from = 0; from < 20000; from += 1000) {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, order_items(name, qty, price)")
+        .order("created_at", { ascending: false })
+        .range(from, from + 999);
+      if (error) return setMsg(error.message);
+      all.push(...((data ?? []) as AdminOrder[]));
+      if (!data || data.length < 1000) break;
+    }
+    setOrders(all);
   }, []);
 
   // Realtime: muat ulang setiap ada perubahan pada tabel orders
@@ -219,12 +250,16 @@ export default function AdminPage() {
 
   async function setStatus(id: string, status: OrderStatus) {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-    if (error) setMsg("Gagal memperbarui. Pastikan akun ini terdaftar di tabel admins.");
+    if (error) return setMsg("Gagal memperbarui. Pastikan akun ini terdaftar di tabel admins.");
+    setMsg(null);
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
   }
 
   async function setPaid(id: string, payment_status: PayStatus) {
     const { error } = await supabase.from("orders").update({ payment_status }).eq("id", id);
-    if (error) setMsg("Gagal memperbarui pembayaran. Pastikan akun ini terdaftar di tabel admins.");
+    if (error) return setMsg("Gagal memperbarui pembayaran. Pastikan akun ini terdaftar di tabel admins.");
+    setMsg(null);
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, payment_status } : o)));
   }
 
   // Pelanggan = dikelompokkan dari nomor HP pada pesanan (aplikasi ini tidak memakai akun pelanggan)
@@ -245,16 +280,28 @@ export default function AdminPage() {
     return [...map.values()];
   }, [orders]);
 
-  const counts = useMemo(() => {
-    const m: Record<string, number> = { semua: orders.length };
-    for (const st of STATUSES) m[st] = orders.filter((o) => o.status === st).length;
-    return m;
-  }, [orders]);
-
-  const shownOrders = useMemo(() => {
+  // Filter dasar (pencarian + metode bayar + rentang tanggal); status diterapkan setelahnya
+  const base = useMemo(() => {
     const t = qOrder.trim().toLowerCase();
-    return orders.filter((o) => (filter === "semua" || o.status === filter) && (!t || orderText(o).includes(t)));
-  }, [orders, qOrder, filter]);
+    return orders.filter((o) => {
+      const d = dayKey(o.created_at);
+      return (
+        (!t || orderText(o).includes(t)) &&
+        (payF === "semua" || payGroup(o.payment_method) === payF) &&
+        (!dateFrom || d >= dateFrom) &&
+        (!dateTo || d <= dateTo)
+      );
+    });
+  }, [orders, qOrder, payF, dateFrom, dateTo]);
+
+  const counts = useMemo(() => {
+    const m: Record<string, number> = { semua: base.length };
+    for (const st of STATUSES) m[st] = base.filter((o) => o.status === st).length;
+    return m;
+  }, [base]);
+
+  const shownOrders = useMemo(() => base.filter((o) => filter === "semua" || o.status === filter), [base, filter]);
+  const filtered = payF !== "semua" || Boolean(dateFrom) || Boolean(dateTo) || qOrder.trim() !== "" || filter !== "semua";
 
   const shownCustomers = useMemo(() => {
     const t = qCust.trim().toLowerCase();
@@ -265,7 +312,13 @@ export default function AdminPage() {
     );
   }, [customers, qCust]);
 
-  const omzet = useMemo(() => orders.filter((o) => o.status === "selesai").reduce((a, o) => a + o.total, 0), [orders]);
+  // Omzet = jumlah total pesanan berstatus "selesai" (pesanan dibatalkan / belum selesai tidak dihitung)
+  const sumSelesai = (list: AdminOrder[]) => list.filter((o) => o.status === "selesai").reduce((a, o) => a + (o.total || 0), 0);
+  const omzet = useMemo(() => sumSelesai(orders), [orders]);
+  const today = dayKey(new Date());
+  const todayOrders = useMemo(() => orders.filter((o) => dayKey(o.created_at) === today), [orders, today]);
+  const omzetHariIni = useMemo(() => sumSelesai(todayOrders), [todayOrders]);
+  const omzetFilter = useMemo(() => sumSelesai(shownOrders), [shownOrders]);
 
   if (session && isAdmin === null) return <p className="py-20 text-center text-sm text-arang/60">Memeriksa akses...</p>;
 
@@ -296,14 +349,15 @@ export default function AdminPage() {
         <button onClick={() => supabase.auth.signOut({ scope: "local" })} className="text-sm text-terakota underline transition-colors hover:text-terakota-dark">Keluar</button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          { l: "Pesanan", v: String(orders.length) },
+          { l: "Pesanan hari ini", v: String(todayOrders.length) },
+          { l: "Omzet hari ini (selesai)", v: rupiah(omzetHariIni) },
+          { l: "Total omzet (selesai)", v: rupiah(omzet) },
           { l: "Pelanggan", v: String(customers.length) },
-          { l: "Omzet selesai", v: rupiah(omzet) },
         ].map((x) => (
           <div key={x.l} className="rounded-2xl bg-white p-3 text-center shadow-sm ring-1 ring-terakota/10">
-            <p className="truncate text-sm font-bold text-terakota sm:text-lg">{x.v}</p>
+            <p className="truncate text-base font-bold text-terakota sm:text-lg">{x.v}</p>
             <p className="text-[11px] text-arang/60">{x.l}</p>
           </div>
         ))}
@@ -337,6 +391,18 @@ export default function AdminPage() {
               </button>
             ))}
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <select value={payF} onChange={(e) => setPayF(e.target.value as typeof payF)} aria-label="Filter metode pembayaran" className="h-11 rounded-2xl bg-white px-3 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40">
+              <option value="semua">Semua pembayaran</option>
+              <option value="qris">QRIS</option>
+              <option value="bank">Transfer Bank</option>
+              <option value="cash">Cash / Tunai</option>
+            </select>
+            <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} aria-label="Dari tanggal" className="h-11 rounded-2xl bg-white px-3 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40" />
+            <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} aria-label="Sampai tanggal" className="h-11 rounded-2xl bg-white px-3 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40" />
+            <button onClick={() => { setPayF("semua"); setDateFrom(""); setDateTo(""); setQOrder(""); setFilter("semua"); }} disabled={!filtered} className="h-11 rounded-2xl text-sm font-semibold text-terakota ring-1 ring-terakota/30 transition hover:bg-terakota/10 disabled:opacity-40">Reset filter</button>
+          </div>
+          <p className="mt-2 text-xs text-arang/60">{shownOrders.length} pesanan · omzet selesai <b className="text-terakota">{rupiah(omzetFilter)}</b></p>
           {shownOrders.length === 0 ? (
             <p className="py-12 text-center text-sm text-arang/60">{orders.length === 0 ? "Belum ada pesanan." : "Pesanan tidak ditemukan."}</p>
           ) : (

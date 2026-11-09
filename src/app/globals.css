@@ -23,3 +23,15 @@
 @media (max-width: 1024px) {
   input, textarea, select { font-size: 16px !important; }
 }
+
+/* ===== Cetak struk: hanya .receipt-portal yang tercetak ===== */
+@page { margin: 4mm; }
+@media print {
+  body > *:not(.receipt-portal) { display: none !important; }
+  body { background: #fff !important; overflow: visible !important; }
+  .receipt-portal { position: static !important; display: block !important; overflow: visible !important; background: none !important; padding: 0 !important; }
+  .receipt-portal .no-print { display: none !important; }
+  .receipt-portal > div { max-width: none !important; margin: 0 !important; }
+  .receipt-sheet { width: 76mm !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .receipt-sheet img { filter: grayscale(1); }
+}
