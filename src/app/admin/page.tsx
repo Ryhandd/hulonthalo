@@ -210,7 +210,7 @@ export default function AdminPage() {
     }
     const { data: ok } = await supabase.rpc("is_admin");
     if (ok !== true) {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       setBusy(false);
       return setMsg("Akun ini bukan admin. Akses panel admin ditolak. Pelanggan silakan masuk lewat halaman Profil.");
     }
@@ -274,7 +274,7 @@ export default function AdminPage() {
       <div className="mx-auto max-w-sm py-16 text-center">
         <h1 className="text-2xl font-bold text-terakota">Akses ditolak</h1>
         <p className="mt-2 text-sm text-arang/65">Akun ini tidak terdaftar sebagai admin.</p>
-        <button onClick={() => supabase.auth.signOut()} className="mt-6 h-12 rounded-full bg-terakota px-8 text-sm font-semibold text-krim transition hover:bg-terakota-dark">Keluar</button>
+        <button onClick={() => supabase.auth.signOut({ scope: "local" })} className="mt-6 h-12 rounded-full bg-terakota px-8 text-sm font-semibold text-krim transition hover:bg-terakota-dark">Keluar</button>
       </div>
     );
 
@@ -293,7 +293,7 @@ export default function AdminPage() {
     <div className="py-6 pb-16">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-terakota">Dasbor admin</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-sm text-terakota underline transition-colors hover:text-terakota-dark">Keluar</button>
+        <button onClick={() => supabase.auth.signOut({ scope: "local" })} className="text-sm text-terakota underline transition-colors hover:text-terakota-dark">Keluar</button>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

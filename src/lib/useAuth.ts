@@ -59,5 +59,5 @@ export async function signUp(v: { name: string; email: string; phone: string; pa
 }
 
 export async function signOut() {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" }); // hanya perangkat ini, tidak mencabut sesi lain
 }
