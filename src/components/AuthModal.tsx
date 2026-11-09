@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthError, resendConfirmation, signIn, signUp } from "@/lib/useAuth";
+import { signIn, signUp } from "@/lib/useAuth";
 
 const field =
   "h-12 w-full rounded-2xl bg-krim px-4 text-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40";
@@ -14,8 +14,6 @@ export default function AuthModal({ initial, onClose }: { initial: "masuk" | "da
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [needConfirm, setNeedConfirm] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -26,8 +24,6 @@ export default function AuthModal({ initial, onClose }: { initial: "masuk" | "da
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setNotice(null);
-    setNeedConfirm(false);
     if (mode === "daftar") {
       if (name.trim().length < 2) return setError("Isi nama lengkap Anda.");
       if (phone.replace(/\D/g, "").length < 8) return setError("Isi nomor HP yang valid.");
@@ -36,34 +32,11 @@ export default function AuthModal({ initial, onClose }: { initial: "masuk" | "da
     if (password.length < 6) return setError("Kata sandi minimal 6 karakter.");
     setBusy(true);
     try {
-      if (mode === "masuk") {
-        await signIn(email, password);
-        onClose();
-      } else {
-        const loggedIn = await signUp({ name, email, phone, password });
-        if (loggedIn) onClose();
-        else {
-          setNotice("Pendaftaran berhasil. Kami mengirim email konfirmasi. Klik tautan di email tersebut, lalu masuk dengan kata sandi Anda.");
-          setNeedConfirm(true);
-          setMode("masuk");
-        }
-      }
+      if (mode === "masuk") await signIn(email, password);
+      else await signUp({ name, email, phone, password });
+      onClose(); // sudah login
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan. Coba lagi.");
-      if (err instanceof AuthError && err.code === "not_confirmed") setNeedConfirm(true);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function resend() {
-    setError(null);
-    setBusy(true);
-    try {
-      await resendConfirmation(email);
-      setNotice("Email konfirmasi dikirim ulang. Cek kotak masuk dan folder spam.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal mengirim ulang email.");
     } finally {
       setBusy(false);
     }
@@ -84,7 +57,7 @@ export default function AuthModal({ initial, onClose }: { initial: "masuk" | "da
 
         <div className="mt-4 grid grid-cols-2 rounded-full bg-krim p-1 text-sm font-semibold">
           {(["masuk", "daftar"] as const).map((m) => (
-            <button key={m} type="button" onClick={() => { setMode(m); setError(null); setNotice(null); setNeedConfirm(false); }}
+            <button key={m} type="button" onClick={() => { setMode(m); setError(null); }}
               className={`h-10 rounded-full transition ${mode === m ? "bg-terakota text-krim shadow-sm" : "text-arang/60"}`}>
               {m === "masuk" ? "Sign In" : "Sign Up"}
             </button>
@@ -100,13 +73,7 @@ export default function AuthModal({ initial, onClose }: { initial: "masuk" | "da
           )}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="email" className={field} />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Kata sandi (min. 6 karakter)" autoComplete={mode === "masuk" ? "current-password" : "new-password"} className={field} />
-          {notice && <p role="status" className="rounded-2xl bg-zaitun/10 px-4 py-3 text-sm text-zaitun-dark">{notice}</p>}
           {error && <p role="alert" className="rounded-2xl bg-terakota/10 px-4 py-3 text-sm text-terakota-dark">{error}</p>}
-          {needConfirm && (
-            <button type="button" onClick={resend} disabled={busy || !email.trim()} className="h-11 w-full rounded-full bg-white text-sm font-semibold text-terakota ring-1 ring-terakota/40 transition hover:bg-terakota/10 disabled:opacity-60">
-              Kirim ulang email konfirmasi
-            </button>
-          )}
           <button disabled={busy} className="h-12 w-full rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm transition hover:bg-terakota-dark active:scale-[.98] disabled:opacity-60">
             {busy ? "Memproses..." : mode === "masuk" ? "Masuk" : "Daftar"}
           </button>
