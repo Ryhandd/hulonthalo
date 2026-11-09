@@ -9,7 +9,7 @@ import { placeOrder, uploadProof } from "@/lib/data";
 import { addOrderId, loadProfile, saveProfile } from "@/lib/profile";
 import { ACCOUNT_HOLDER, BANKS, type OrderType, type PayMethod } from "@/lib/checkout";
 import { useAuth } from "@/lib/useAuth";
-import QrSim from "@/components/QrSim";
+import QrisImage from "@/components/QrisImage";
 
 const field =
   "h-12 w-full rounded-2xl bg-white px-4 text-sm shadow-sm outline-none ring-1 ring-terakota/15 focus:ring-2 focus:ring-terakota/40";
@@ -95,6 +95,11 @@ export default function CartPage() {
   return (
     <div className="mx-auto max-w-xl pb-28 pt-5">
       <h1 className="text-2xl font-bold text-terakota">Keranjang</h1>
+      {account === null && (
+        <p className="mt-1 text-xs text-arang/60">
+          Memesan sebagai <b>Tamu</b>. <Link href="/info" className="font-semibold text-terakota underline">Masuk / Daftar</Link> agar data terisi otomatis.
+        </p>
+      )}
 
       <ul className="mt-4 divide-y divide-terakota/10 rounded-2xl bg-white px-4 shadow-sm ring-1 ring-terakota/10">
         {lines.map((l) => (
@@ -171,8 +176,8 @@ export default function CartPage() {
         {pay === "qris" && (
           <div className="text-center">
             <p className="text-sm font-semibold">Scan untuk membayar {rupiah(total)}</p>
-            <div className="mt-3 inline-block rounded-2xl p-2 ring-1 ring-terakota/15"><QrSim seed={`hulonthalo-${total}-${count}`} /></div>
-            <p className="mt-2 text-xs text-arang/55">Simulasi QRIS. Pesanan dikonfirmasi kasir setelah pembayaran diterima.</p>
+            <div className="mt-3 inline-block rounded-2xl p-2 ring-1 ring-terakota/15"><QrisImage seed={`hulonthalo-${total}-${count}`} /></div>
+            <p className="mt-2 text-xs text-arang/55">Masukkan nominal sesuai total. Pesanan dikonfirmasi kasir setelah pembayaran diterima.</p>
           </div>
         )}
         {isBank && bank && (

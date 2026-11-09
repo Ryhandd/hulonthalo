@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { Category, MenuItem, OrderDetail } from "./types";
-import type { OrderType, PayMethod } from "./checkout";
+import { ORDER_TYPE_LABEL, PAY_LABEL, type OrderType, type PayMethod } from "./checkout";
 import { fotoMenu } from "./menuImages";
 
 export async function fetchMenu(): Promise<{ categories: Category[]; items: MenuItem[] }> {
@@ -34,8 +34,27 @@ export async function placeOrder(input: {
     p_table_no: input.orderType === "dinein" ? input.tableNo : null,
     p_payment_method: input.paymentMethod,
   });
-  if (error) throw new Error(error.message);
-  return data as string;
+  if (!error) return data as string;
+
+  // Database belum dimigrasi / schema cache belum dimuat ulang: pakai fungsi place_order versi lama
+  // (4 parameter) dan simpan info layanan & pembayaran di catatan agar kasir tetap tahu.
+  const missing = error.code === "PGRST202" || /could not find the function/i.test(error.message);
+  if (!missing) throw new Error(error.message);
+  const info = `[${ORDER_TYPE_LABEL[input.orderType]}${input.orderType === "dinein" ? ` Meja ${input.tableNo}` : ""} | ${PAY_LABEL[input.paymentMethod]}]`;
+  const legacy = await supabase.rpc("place_order", {
+    p_customer_name: input.name,
+    p_phone: input.phone,
+    p_note: `${info} ${input.note}`.trim(),
+    p_items: input.items,
+  });
+  if (legacy.error) {
+    throw new Error(
+      /could not find the function/i.test(legacy.error.message)
+        ? "Database belum siap: jalankan supabase/schema.sql lalu supabase/migrasi_fitur_baru.sql di Supabase SQL Editor."
+        : legacy.error.message
+    );
+  }
+  return legacy.data as string;
 }
 
 export async function getOrder(id: string): Promise<OrderDetail | null> {

@@ -66,11 +66,8 @@ export default function InfoPage() {
           </>
         ) : (
           <>
-            <p className="mt-1 text-sm text-arang/65">Masuk atau daftar agar nama dan nomor HP terisi otomatis saat memesan.</p>
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => setAuth("masuk")} className="h-12 flex-1 rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm transition hover:bg-terakota-dark active:scale-[.98]">Sign In</button>
-              <button onClick={() => setAuth("daftar")} className="h-12 flex-1 rounded-full bg-white text-sm font-semibold text-terakota ring-1 ring-terakota/40 transition hover:bg-terakota/10 active:scale-[.98]">Sign Up</button>
-            </div>
+            <p className="mt-1 text-sm text-arang/65">Anda menjelajah sebagai <b>Tamu</b>. Menu dan keranjang tetap bisa dipakai. Masuk atau daftar agar nama dan nomor HP terisi otomatis saat memesan.</p>
+            <button onClick={() => setAuth("masuk")} className="mt-4 h-12 w-full rounded-full bg-terakota text-sm font-semibold text-krim shadow-sm transition hover:bg-terakota-dark active:scale-[.98]">Masuk / Daftar</button>
           </>
         )}
       </section>

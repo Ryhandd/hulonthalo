@@ -1,6 +1,6 @@
 -- =====================================================================
 -- MIGRASI: layanan (dine-in / take-away) + metode pembayaran
--- Jalankan SEKALI di Supabase Dashboard > SQL Editor (setelah schema.sql).
+-- Jalankan di (aman diulang) Supabase Dashboard > SQL Editor (setelah schema.sql).
 -- =====================================================================
 
 -- 1. Kolom baru di tabel orders
@@ -122,10 +122,15 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('payment-proofs', 'payment-proofs', true, 5242880, array['image/jpeg','image/png','image/webp'])
 on conflict (id) do nothing;
 
+drop policy if exists "proofs_public_read" on storage.objects;
+drop policy if exists "proofs_public_insert" on storage.objects;
 create policy "proofs_public_read" on storage.objects for select
   using (bucket_id = 'payment-proofs');
 create policy "proofs_public_insert" on storage.objects for insert to anon, authenticated
   with check (bucket_id = 'payment-proofs');
+
+-- 6. Muat ulang schema cache API (mengatasi "Could not find the function ... in the schema cache")
+notify pgrst, 'reload schema';
 
 -- =====================================================================
 -- AKUN PELANGGAN: memakai Supabase Auth bawaan.

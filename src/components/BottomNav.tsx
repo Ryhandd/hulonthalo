@@ -23,7 +23,7 @@ const TABS = [
     icon: <svg {...I}><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" /><path d="M4 7.5l8 4.5 8-4.5" /><path d="M12 12v9" /></svg>,
   },
   {
-    href: "/info", label: "Info", match: (p: string) => p.startsWith("/info"),
+    href: "/info", label: "Profil", match: (p: string) => p.startsWith("/info"),
     icon: <svg {...I}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></svg>,
   },
 ];

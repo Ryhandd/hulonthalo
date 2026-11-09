@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
 import { INFO, isOpenNow } from "@/lib/info";
+import { useAuth } from "@/lib/useAuth";
 
 export default function Navbar() {
   const [open, setOpen] = useState<boolean | null>(null);
+  const account = useAuth();
 
   useEffect(() => {
     const update = () => setOpen(isOpenNow());
@@ -23,6 +25,7 @@ export default function Navbar() {
           <span className="font-serif text-lg font-bold text-terakota transition-colors duration-200 group-hover:text-terakota-dark">Hulonthalo</span>
         </Link>
 
+        <div className="flex items-center gap-2">
         {open !== null && (
           <span
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
@@ -33,6 +36,12 @@ export default function Navbar() {
             {open ? "Buka" : `Tutup, buka ${String(INFO.openHour).padStart(2, "0")}.00`}
           </span>
         )}
+        {account !== undefined && (
+          <Link href="/info" className="flex h-8 items-center rounded-full bg-terakota px-3 text-xs font-semibold text-krim transition hover:bg-terakota-dark active:scale-95">
+            {account ? (account.name.split(" ")[0] || "Akun") : "Masuk / Daftar"}
+          </Link>
+        )}
+        </div>
       </div>
     </header>
   );
