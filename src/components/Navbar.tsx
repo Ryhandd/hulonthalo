@@ -46,8 +46,8 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           {isAdminPage ? (
             adminEmail !== undefined && (
-              <span className="flex h-8 max-w-[200px] items-center gap-1.5 rounded-full bg-arang px-3 text-xs font-semibold text-krim" title={adminEmail ?? undefined}>
-                <span className="rounded bg-rempah px-1.5 py-0.5 text-[10px] font-bold uppercase text-arang">Admin</span>
+              <span className="flex h-8 max-w-[200px] items-center gap-1.5 rounded-full bg-zaitun px-3 text-xs font-semibold text-white" title={adminEmail ?? undefined}>
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white">Admin</span>
                 <span className="truncate">{adminEmail ?? "Belum masuk"}</span>
               </span>
             )

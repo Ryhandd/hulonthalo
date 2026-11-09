@@ -15,16 +15,34 @@ const SHORT: Record<OrderStatus, string> = {
   baru: "Diterima", diproses: "Dimasak", siap: "Siap", selesai: "Selesai", dibatalkan: "Batal",
 };
 
+// Data dari database bisa kurang lengkap (mis. fungsi get_order versi lama): beri nilai bawaan agar tidak crash.
+function normalize(o: OrderDetail): OrderDetail {
+  return {
+    ...o,
+    status: (o.status in STATUS_LABEL ? o.status : "baru") as OrderStatus,
+    total: Number(o.total) || 0,
+    customer_name: o.customer_name ?? "",
+    order_type: o.order_type === "dinein" ? "dinein" : "takeaway",
+    table_no: o.table_no ?? null,
+    payment_method: o.payment_method && o.payment_method in PAY_LABEL ? o.payment_method : "cash",
+    payment_status: o.payment_status === "lunas" ? "lunas" : "belum_bayar",
+    has_proof: Boolean(o.has_proof),
+    items: Array.isArray(o.items) ? o.items : [],
+  };
+}
+
 export default function OrderPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id ?? "";
   const [order, setOrder] = useState<OrderDetail | null | undefined>(undefined);
   const [upBusy, setUpBusy] = useState(false);
   const [upMsg, setUpMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!id) { setOrder(null); return; }
     addOrderId(id); // pastikan pesanan tersimpan di riwayat perangkat ini
     let alive = true;
-    const load = () => getOrder(id).then((o) => alive && setOrder(o)).catch(() => alive && setOrder(null));
+    const load = () => getOrder(id).then((o) => alive && setOrder(o ? normalize(o) : null)).catch(() => alive && setOrder(null));
     load();
     const t = setInterval(load, 5000);
     return () => { alive = false; clearInterval(t); };
@@ -48,10 +66,10 @@ export default function OrderPage() {
       </Link>
 
       <h1 className="mt-1 text-2xl font-bold text-terakota">Terima kasih, {order.customer_name}</h1>
-      <p className="mt-1 text-sm text-arang/65">Pesanan #{order.id.slice(-6).toUpperCase()}. Status diperbarui otomatis.</p>
+      <p className="mt-1 text-sm text-arang/65">Pesanan #{String(order.id ?? id).slice(-6).toUpperCase()}. Status diperbarui otomatis.</p>
 
       <div className="mt-5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-terakota/10">
-        <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_BADGE[order.status]}`}>
+        <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${(STATUS_BADGE[order.status] ?? "")}`}>
           {STATUS_LABEL[order.status]}
         </span>
 
